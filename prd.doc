@@ -1,0 +1,14 @@
+I want to create a new smart contract in movementlabs
+1. This contract will be prediction game
+2. Admin: can create a poll (Game), on which team will win today -> This will return the id of the game. 
+This will have 
+a. Title of the game, time of the contest that going to end. And also time for accepting the predictions. And entry price for that game. 
+b. Number of teams, with each have names and id
+c. The number of polls for the each game and users address who predicted that team
+ 
+3. Now users can connect with the wallet, can check the games that are active at the present time. 
+4. Users can predict the game, by paying the entry price. 
+5. After the game ends, the admin will declare the winner team, and the users who predicted that team will get the money from the pool. The admin will get 1% cut from the pool. 
+6. The users can check the leaderboard of the prediction game. 
+7. The users can check the history of the prediction game. And all the previous games details. 
+8. User can also check his active predictions and previous predictions. 

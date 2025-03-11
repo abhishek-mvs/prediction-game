@@ -1,0 +1,14 @@
+[package]
+name = "prediction-game"
+version = "1.0.0"
+authors = []
+
+[addresses]
+prediction_game = "0xb6b9dde22d73139e02febdc03159b871d2668c3123f8f3576efe7b2896989b01"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "aptos-cli-v2.1.0"
+subdir = "aptos-move/framework/aptos-framework"
+
+[dev-dependencies]

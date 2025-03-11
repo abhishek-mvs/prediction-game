@@ -1,0 +1,7 @@
+/build
+/node_modules
+/target
+/aptos-move-cli
+/aptos-move-cli-0.1.1
+/aptos-move-cli-0.1.1-x86_64-unknown-linux-gnu.tar.gz
+.movement
