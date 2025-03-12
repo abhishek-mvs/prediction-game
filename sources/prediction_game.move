@@ -363,6 +363,12 @@ module prediction_game::prediction_game {
                 let admin_fee = game.total_pool / 100;
                 let remaining_pool = game.total_pool - admin_fee;
                 
+                // Transfer admin fee to admin
+                if (admin_fee > 0) {
+                    let fee_coins = coin::extract(&mut state.treasury, admin_fee);
+                    coin::deposit(admin_addr, fee_coins);
+                };
+                
                 // Find winners
                 let predictions_len = vector::length(&game.predictions);
                 let winner_count = 0;
@@ -382,13 +388,25 @@ module prediction_game::prediction_game {
                 // Calculate reward per winner
                 let reward_per_winner = remaining_pool / winner_count;
                 
+                // Calculate dust amount (remainder after division)
+                let total_distributed = reward_per_winner * winner_count;
+                let dust_amount = remaining_pool - total_distributed;
+                
                 // Distribute rewards
                 pred_idx = 0;
+                let winner_idx = 0;
                 while (pred_idx < predictions_len) {
                     let prediction = vector::borrow(&game.predictions, pred_idx);
                     if (prediction.team_id == game.winner_team_id) {
+                        // Calculate this winner's reward (add dust to the first winner)
+                        let winner_reward = reward_per_winner;
+                        if (winner_idx == 0 && dust_amount > 0) {
+                            winner_reward = winner_reward + dust_amount;
+                        };
+                        winner_idx = winner_idx + 1;
+                        
                         // Transfer reward to winner
-                        let reward = coin::extract(&mut state.treasury, reward_per_winner);
+                        let reward = coin::extract(&mut state.treasury, winner_reward);
                         coin::deposit(prediction.user, reward);
                         
                         // Update user's predictions
@@ -416,7 +434,7 @@ module prediction_game::prediction_game {
                             RewardDistributedEvent {
                                 game_id,
                                 winner: prediction.user,
-                                amount: reward_per_winner,
+                                amount: winner_reward,
                             }
                         );
                     };
@@ -660,5 +678,61 @@ module prediction_game::prediction_game {
     public fun get_teams_for_game(game_id: u64): vector<Team> acquires PredictionGameState {
         let game = get_game_details(game_id);
         game.teams
+    }
+    
+    /// Reset the entire prediction game state (admin only)
+    /// This function completely resets the game state, returning all funds in the treasury to the admin
+    /// WARNING: This will erase all games, predictions, and history
+    public entry fun reset_prediction_game(admin: &signer) acquires PredictionGameState {
+        let admin_addr = signer::address_of(admin);
+        let state = borrow_global_mut<PredictionGameState>(admin_addr);
+        
+        // Verify admin
+        assert!(admin_addr == state.admin, E_NOT_ADMIN);
+        
+        // Return funds to admin
+        let treasury_amount = coin::value(&state.treasury);
+        if (treasury_amount > 0) {
+            let funds = coin::extract(&mut state.treasury, treasury_amount);
+            coin::deposit(admin_addr, funds);
+        };
+        
+        // Reset game state
+        state.games = vector::empty<Game>();
+        state.game_counter = 0;
+        
+        // Note: We don't reset the event handles as they are tied to the account
+        // and cannot be recreated without recreating the entire resource
+    }
+    
+    /// For testing only - adjust contest end time (admin only)
+    /// This allows speeding up testing by setting the contest end time to a past value
+    public entry fun set_contest_end_time_for_testing(
+        admin: &signer,
+        game_id: u64,
+        new_end_time: u64
+    ) acquires PredictionGameState {
+        let admin_addr = signer::address_of(admin);
+        let state = borrow_global_mut<PredictionGameState>(admin_addr);
+        
+        // Verify admin
+        assert!(admin_addr == state.admin, E_NOT_ADMIN);
+        
+        // Find the game
+        let games_len = vector::length(&state.games);
+        let game_idx = 0;
+        let found = false;
+        
+        while (game_idx < games_len && !found) {
+            let game = vector::borrow_mut(&mut state.games, game_idx);
+            if (game.id == game_id) {
+                found = true;
+                game.contest_end_time = new_end_time;
+                break
+            };
+            game_idx = game_idx + 1;
+        };
+        
+        assert!(found, E_GAME_NOT_FOUND);
     }
 } 
